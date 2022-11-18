@@ -1,7 +1,7 @@
 from ra import numeric
 from ra import *
 import scipy as sp
-import exceptions
+# import exceptions
 import copy
 from math import exp, sqrt
 from collections import namedtuple
@@ -16,15 +16,15 @@ def apply_weigth(periodicity, weight_fun=None):
 
 
 def maxNPeaks(periodicity, N=None, return_strength=False):
-    """ 
+    """
         This function returns the N most likely tempo candidates given the periodicity.
         If N is not specified, all candidates are returned.
     """
     # Selecting peaks in the periodicity vector:
     tempo_ind = numeric.peakPicking(periodicity.data)
-    cand_strength = periodicity.data[tempo_ind]    
+    cand_strength = periodicity.data[tempo_ind]
     cand_tempo = []
-    cand_strength_list = []  
+    cand_strength_list = []
     if tempo_ind.ndim == 1:
         ind_cand = sp.argsort(cand_strength, axis=0)
         ind_cand = ind_cand[::-1]
@@ -42,7 +42,7 @@ def maxNPeaks(periodicity, N=None, return_strength=False):
         return cand_tempo, cand_strength_list
     else:
         return cand_tempo
-    
+
 def searchPeakMult(cand_vec, str_vec, mult_vec, inf_tactus_lim=0.2, sup_tactus_lim=1, lim=20e-3):
     str_vec = copy.copy(str_vec)
     cand_vec = copy.copy(cand_vec)
@@ -67,28 +67,28 @@ def searchPeakMult(cand_vec, str_vec, mult_vec, inf_tactus_lim=0.2, sup_tactus_l
             # Deleting candidate itself
             aux = sp.absolute(tactus_cand-cand_vec).argmin()
             cand_vec = sp.delete(cand_vec, aux)
-            str_vec = sp.delete(str_vec, aux)            
+            str_vec = sp.delete(str_vec, aux)
             out_cand.append(aux_out)
             out_str.append(aux_str)
         else:
             count += 1
-    return out_cand, out_str 
+    return out_cand, out_str
 
-        
+
 def guarantee_len(tempo, strength, N):
     """ This function guarantees that the estimated tempo have the chosen length. If the
         length of the input arguments, they are zero-padded to the appropriate length. This
-        behavior must happen to guarantee that the result can be stored as arrays in the 
+        behavior must happen to guarantee that the result can be stored as arrays in the
         evalDB file."""
     if N!=1:
         tempo += [0 for i in range(N-len(tempo))]
         strength += [0 for i in range(N-len(strength))]
     return tempo, strength
-    
-    
+
+
 class __ClusterManager(object):
     """ Class used to model a cluster"""
-    
+
     class cluster_type(object):
         """ Stores cluster information."""
         def __init__(self, element=None, weight=0):
@@ -111,11 +111,11 @@ class __ClusterManager(object):
         else:
             self.cluster_width = cluster_width
         self.clusters = []
-                
+
     def search_clusters(self, tempo):
         aux_interval = sp.array([i.interval for i in self.clusters])
         # dist = sp.absolute((aux_interval-tempo)) < self.cluster_width
-        dist = self.cluster_width(aux_interval,tempo) 
+        dist = self.cluster_width(aux_interval,tempo)
         return sp.nonzero(dist)[0]
 
     def add_element(self, tempo, weight):
@@ -127,25 +127,25 @@ class __ClusterManager(object):
             self.clusters[dist].elements.append(tempo*weight)
             self.clusters[dist].weight += weight
         else:
-            new_cluster = self.cluster_type(tempo, weight)   
+            new_cluster = self.cluster_type(tempo, weight)
             self.clusters.append(new_cluster)
-            
+
     def merge_clusters(self):
         for count, elem in enumerate(self.clusters):
-            rem_vec = []            
+            rem_vec = []
             dist = self.search_clusters(elem.interval)
             for index in dist:
                 if index != count:
                     self.__add_clusters(count, index)
                     rem_vec.append(index)
             self.__del_elements(rem_vec)
-            
+
     def __del_elements(self, rem_vec):
         rem_vec.sort()
         rem_vec.reverse()
         for index in rem_vec:
             self.clusters.pop(index)
-                    
+
     def calc_weights(self, score_fun=None, weight_fun=None):
         if score_fun == None:
             score_fun = lambda x, y, z: x.weight
@@ -154,32 +154,32 @@ class __ClusterManager(object):
         for ind, clu in enumerate(self.clusters):
             self.clusters[ind].score = score_fun(clu, self.clusters, self.cluster_width)
             self.clusters[ind].score *= weight_fun(self.clusters[ind].interval)
-            
+
     def __add_clusters(self, i, j):
         # Adding information from j to i
         self.clusters[i].elements += self.clusters[j].elements
         self.clusters[i].weight += self.clusters[j].weight
- 
- 
+
+
 def return_less_than(dist):
     def less_than(x, y):
         return sp.absolute(sp.array(x)-sp.array(y))<dist
-    return less_than       
- 
-        
+    return less_than
+
+
 def prop_width(percentage):
     def less_than(x, y):
         return (sp.absolute(sp.array(x)-sp.array(y))/sp.array(x))<percentage/100.0
     return less_than
-    
-        
+
+
 def dixon_score(cl1, clusters, cluster_width):
     n = range(1, 9)
     f = sp.zeros(8)
     f[4:8] = 1
     f[0:4] = range(5, 1, -1)
     score = 0
-    print cluster_width
+    print(cluster_width)
     for count2, cl2 in enumerate(clusters):
         tempo1 = cl1.interval
         tempo2 = cl2.interval
@@ -187,8 +187,8 @@ def dixon_score(cl1, clusters, cluster_width):
             if abs(tempo1 - tempo2/mult) < cluster_width:
                 score += w*clusters[count2].weight
     return score
-    
-    
+
+
 def template_score(cl1, clusters, cluster_width):
     """ Peeter template score adapted to work with clusters."""
     beta = [1.0/3, 1.0/2, 1.0, 1.5, 2.0, 3.0]
@@ -207,8 +207,8 @@ def template_score(cl1, clusters, cluster_width):
                 score += weight*clusters[ind].weight
         max_score = max(score, max_score)
     return max_score
-    
-    
+
+
 def __search_cluster_list(tempo, tempo_list, cluster_width):
         dist = sp.absolute(tempo-tempo_list)
         ind_min = dist.argmin()
@@ -219,7 +219,7 @@ def __search_cluster_list(tempo, tempo_list, cluster_width):
         else:
             return None
 
-    
+
 def detec_tempo_templates(sim, N=None, min_tempo=40.0, max_tempo=250.0, weight_fun=None,
                           return_strength=False, precision=1.0, compass_criterium = 'max'):
     templates = [[-1, 1, 1, -1, 1, -1], [-1, 1, 1, -1, -1, 1], [1, -1, 1, -1, 1, -1]]
@@ -241,7 +241,7 @@ def detec_tempo_templates(sim, N=None, min_tempo=40.0, max_tempo=250.0, weight_f
             sim.data = sim.data[0::down_factor]
             actual_bpm = down_factor*bpm_fs
     for template in templates:
-        tempo_curve, lag = calc_template(sim, template=template, min_lag=60.0/max_tempo, 
+        tempo_curve, lag = calc_template(sim, template=template, min_lag=60.0/max_tempo,
                                     max_lag=60.0/min_tempo, threshold=actual_bpm)
 #         plt.plot(60./lag, tempo_curve)
 #         plt.title('{0}'.format(template))
@@ -266,7 +266,7 @@ def detec_tempo_templates(sim, N=None, min_tempo=40.0, max_tempo=250.0, weight_f
         for ind, strength in enumerate(sum_list):
             if strength > max_strength:
                 max_strength = strength
-                best_template = ind       
+                best_template = ind
     else:
         raise ValueError('Invalid pattern selection value.')
     cand_tempo = tempo_list[best_template]
@@ -274,7 +274,7 @@ def detec_tempo_templates(sim, N=None, min_tempo=40.0, max_tempo=250.0, weight_f
     if N!=None:
         cand_tempo, cand_strength = guarantee_len(cand_tempo, cand_strength, N)
     if return_strength:
-        return cand_tempo, cand_strength 
+        return cand_tempo, cand_strength
     return cand_tempo
 
 
@@ -296,7 +296,7 @@ def calc_template(sim, template, min_lag, max_lag, threshold=3):
 #             if sp.absolute(w-sim.bpm[nearest_ind]) <= threshold:
 #                 output[ind-min_ind] += sim.data[nearest_ind]*weight
     return output, sim.lag[min_ind:max_ind+1]
-    
+
 
 def calc_template_peaks(sim, template, min_lag, max_lag, threshold=1, bpm_list=None):
     beta = [1.0/3, 1.0/2, 1.0, 1.5, 2.0, 3.0]
@@ -323,11 +323,11 @@ def resonance_weight(tempo, beta=5.0, t0=138):
     term1 = ((t0**2 - tempo**2)**2 + beta*(tempo**2))**(-0.5)
     term2 = ((t0**4) + (tempo**4))**(-0.5)
     return (term1 - term2)
-    
+
 def gaussian_weight(tempo, d0=0.5, theta=1.4):
     d = 60.0/tempo
     return sp.exp(-0.5*((sp.log2(d/d0)/theta)**2))
-    
+
 def rayleigh_weight_function(tempo, d0 = 120):
     """ Rayleigh tempo weighting function."""
     d = 60./tempo

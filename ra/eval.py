@@ -1,16 +1,16 @@
 """ This module contains scripts for evaluation of algorithms."""
 
 from scipy import mean, std
-import exceptions
+# import exceptions
 import datetime
 import ra.numeric
 import scipy as sp
-                      
+
 def pscore(reference_tempo, estimated_tempo_list, tol=8):
     """ This function calculates the P-Score of a pair of tempo estimates.
          Definition of P-Score according to MIREX."""
     try:
-        # Sorting estimated tempo list. The reference tempo should already be sorted 
+        # Sorting estimated tempo list. The reference tempo should already be sorted
         # from lowest bpm to highest bpm.
         estimated_tempo_list.sort()
         # Checking if first tempo is within the tolerance (i.e. the algorithm
@@ -21,12 +21,12 @@ def pscore(reference_tempo, estimated_tempo_list, tol=8):
         p = tt1*reference_tempo[2] + (1 - reference_tempo[2])*tt2
         return p
     except IndexError:
-        raise AttributeError("""Reference tempo should have at least 3 elements and 
+        raise AttributeError("""Reference tempo should have at least 3 elements and
                                 estimated tempo should have at least 2.""")
 
 
 def accuracy1(reference_tempo, estimated_tempo, tol=4):
-    """ This function calculates the Accuracy1 figure of merit for tempo estimates. This 
+    """ This function calculates the Accuracy1 figure of merit for tempo estimates. This
     metric considers the tempo correct iff it within a 4 % tolerance window around the
     annotated tempo."""
     if type(reference_tempo) == type([]):
@@ -43,11 +43,11 @@ def accuracy1(reference_tempo, estimated_tempo, tol=4):
         estimated_tempo = estimated_tempo[0]
     # Checking if the error is inside the tolerance window:
     output = tol/100.0 > abs((estimated_tempo-reference_tempo)/float(reference_tempo))
-    return output     
-    
-    
+    return output
+
+
 def accuracy2(reference_tempo, estimated_tempo, tol=4):
-    """ This function calculates the Accuracy2 figure of merit for tempo estimates. This 
+    """ This function calculates the Accuracy2 figure of merit for tempo estimates. This
     metric considers the tempo correct iff it within a 4 % tolerance window around the
     annotated tempo."""
     mult = [1, 2, 3, 0.5, 1.0/3]
@@ -68,7 +68,7 @@ def accuracy2(reference_tempo, estimated_tempo, tol=4):
     result = [abs((m*estimated_tempo)-reference_tempo) for m in mult]
     result = min(result)
     output = tol/100.0 > result/float(reference_tempo)
-    return output                               
+    return output
 
 
 def detecPeakExistance(tempo, sim, tol=4):

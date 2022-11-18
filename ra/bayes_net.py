@@ -9,13 +9,13 @@ import copy
 
 class HiddenVariable(object):
     """ A Hidden Random Variable in a Hidden Markov Model.
-     
+
         **Decription**
         ----------------
         This class describes a hidden variable inside a hidden markov model. Each variable
         can assume a given state. Each HiddenVariable should have a name, a state list,
         and a function that returns the probability of going from one state to another.
-         
+
         **Members**:
         ----------------
         - state_list: list containing the possible states of the sequence.
@@ -27,43 +27,43 @@ class HiddenVariable(object):
         ----------------
         - This class is iterable: iterating over a variable returns a list of possible
         states.
-   
+
         ----------------
     """
     def __init__(self, name=None, state_list=None):
         self.name = name
         self.state_list = state_list
-        
+
     def __iter__(self):
         i = 0
         while i < len(self.state_list):
             yield self.state_list[i]
-            i+=1  
-    
-    
+            i+=1
+
+
 class HMM_Model(object):
-    """ Creates a Hidden Markov Model. 
-     
+    """ Creates a Hidden Markov Model.
+
         **Decription**
         ----------------
-        This class creates a Hidden Markov Model from a set of hidden variables. Each 
-        state must be iterable and possess a finite number of states. Variables are 
+        This class creates a Hidden Markov Model from a set of hidden variables. Each
+        state must be iterable and possess a finite number of states. Variables are
         added through the add_state() method. After all states are added, the transitions
-        probabilities, and prior probability of each state are computed using by the 
+        probabilities, and prior probability of each state are computed using by the
         update() method. If the number of states is greater than sparse_thr (a class
-        varibale), then all data is stored in sparse representation, otherwise scipy 
+        varibale), then all data is stored in sparse representation, otherwise scipy
         arrays are employed. After it is created, this model can be employed by any
-        inference available in the package (i.e. forward_backward_algorithm). A 
-        likelihood function must also be provided to the model. A likelihood function 
+        inference available in the package (i.e. forward_backward_algorithm). A
+        likelihood function must also be provided to the model. A likelihood function
         must receive two parameters: an observation and a valid model state.
-        
+
         **Members**:
         ----------------
         - transition: scipy array or scipy sparse matrix (compressed row format)
-        - likelihood: function that receives an observation and returns a vector of 
+        - likelihood: function that receives an observation and returns a vector of
         probabilities associated with each possible state.
-        - prior: property that returns the prior probabilities calculated according to 
-        a previously set prior function that receives a state and returns its 
+        - prior: property that returns the prior probabilities calculated according to
+        a previously set prior function that receives a state and returns its
         probability.
 
         **Properties**:
@@ -85,9 +85,9 @@ class HMM_Model(object):
         self.likelihood_foo = likelihood
         self.transition_foo = transition
         self.annotation = annotation
-    
+
     def update(self):
-        # Creating state lists and setting number of VAs. Creating empty likelihood and 
+        # Creating state lists and setting number of VAs. Creating empty likelihood and
         # empty transition matrix
         self.__update_lists()
         # Calculating transition probability
@@ -95,9 +95,9 @@ class HMM_Model(object):
             si = self.state_list[i]
             sj = self.state_list[j]
             aux_transition = self.transition_foo(self.va_names, si, sj)
-            if aux_transition: 
+            if aux_transition:
                 self.transition[i, j] = aux_transition
-        # If sparse representations are being used, the matrices are converted to 
+        # If sparse representations are being used, the matrices are converted to
         # compressed row format for efficient multiplication
         if self.n_states > self.sparse_thr:
             self.transition = ss.csr_matrix(self.transition)
@@ -129,8 +129,8 @@ class HMM_Model(object):
         if self.n_states > self.sparse_thr:
             out = out.tocsr()
         return out
-        
-           
+
+
     def likelihood(self, observation, n, vec):
         like_vec  = self.likelihood_vec_zeros.copy()
         # Calls the likelihood function for each state given the observation
@@ -138,7 +138,7 @@ class HMM_Model(object):
             aux = sp.zeros(self.n_states)
             vec_coo = vec.tocoo()
             for i, j, v in itertools.izip(vec_coo.row, vec_coo.col, vec_coo.data):
-                like_vec[i, i] = self.likelihood_foo(observation, n, self.state_list[i])        
+                like_vec[i, i] = self.likelihood_foo(observation, n, self.state_list[i])
         for i in range(self.n_states):
             aux_like = self.likelihood_foo(observation, n, self.state_list[i])
             if aux_like:
@@ -146,10 +146,10 @@ class HMM_Model(object):
         return like_vec
 
 
-        
+
     def save(self, filename):
-        """ Saves the model in a Numpy compatible file. Should be called after 
-        self.update_all has been called. 
+        """ Saves the model in a Numpy compatible file. Should be called after
+        self.update_all has been called.
 
         ATTENTION!!!
         The prior and likelihood functions are not saved!
@@ -166,17 +166,17 @@ class HMM_Model(object):
         pickle.dump(self.annotation, f)
         # Saving transition matrix
         if self.n_states <= self.sparse_thr:
-            sp.save(f, self.transition)        
+            sp.save(f, self.transition)
         else:
             sp.save(f, self.transition.data)
             sp.save(f, self.transition.indices)
             sp.save(f, self.transition.indptr)
         # Closing file
-        f.close()     
+        f.close()
 
     def load(self, filename):
-        """ Saves the model in a Numpy compatible file. Should be called after 
-        self.update_all has been called. 
+        """ Saves the model in a Numpy compatible file. Should be called after
+        self.update_all has been called.
 
         ATTENTION!!!
         The prior and likelihood functions are not saved!
@@ -202,32 +202,32 @@ class HMM_Model(object):
             t_data = sp.load(f)
             t_indices = sp.load(f)
             t_indptr = sp.load(f)
-            self.transition = ss.csr_matrix((t_data, t_indices, t_indptr), 
+            self.transition = ss.csr_matrix((t_data, t_indices, t_indptr),
                                             shape=(self.n_states, self.n_states))
         # Closing file
         f.close()
-         
+
 
 def forward_algorithm(observations, model):
     """ Forward Algorithm for Inference on a Hidden Markov Model.
-     
+
         **Description**
         ----------------
         This function implements the forward algorithm for inference smoothing of a Markov
         Hidden Mode. The input is an array containing the observations at each time
-        instant and the model is an object of the bayes_net.Model class describing the 
+        instant and the model is an object of the bayes_net.Model class describing the
         likelihood function (emission probabilities) and the transition matrix. The output
-        are the observation probabilities for each state at each time instant. 
-         
+        are the observation probabilities for each state at each time instant.
+
         **Args**:
         ----------------
         - observations: array-like (currently only tested for 1-D arrays)
         - model: object of the ra.bayes_net.Model class
-        
+
        **Returns**:
         ----------------
-       - List containing the probabilities of each state being observed in each time 
-       instant given only the observations up to that time instant. 
+       - List containing the probabilities of each state being observed in each time
+       instant given only the observations up to that time instant.
        The probability vector is normalized to one for each time instant and are
        array-like (possibly sparse).
 
@@ -240,29 +240,29 @@ def forward_algorithm(observations, model):
         curr_alpha = model.likelihood(x, n, aux) * aux
         curr_alpha /= curr_alpha.sum()
         alpha.append(curr_alpha)
-    return alpha    
+    return alpha
 
 
 def backward_algorithm(observations, model):
     """ Backward Algorithm for Inference on a Hidden Markov Model.
-     
+
         **Description**
         ----------------
         This function implements the backward algorithm for inference smoothing of a Markov
         Hidden Mode. The input is an array containing the observations at each time
-        instant and the model is an object of the bayes_net.Model class describing the 
+        instant and the model is an object of the bayes_net.Model class describing the
         likelihood function (emission probabilities) and the transition matrix. The output
         are the smoothing probabilities of each state for each time instant.
-         
+
         **Args**:
         ----------------
         - observations: array-like (currently only tested for 1-D arrays)
         - model: object of the ra.bayes_net.Model class
-        
+
        **Returns**:
         ----------------
        - List containing the probabilities of each state being observed in each time
-       given the data from the last time instant down to the current instant. 
+       given the data from the last time instant down to the current instant.
        The probability vector should be normalized to one for each time instant and are
        array-like (possibly sparse).
     """
@@ -273,28 +273,28 @@ def backward_algorithm(observations, model):
         beta.append(curr_beta)
     beta.reverse()
     return beta
-       
-    
+
+
 def forward_backward_algorithm(observations, model):
     """ Forward-Backward Algorithm for inference on a HMM model.
-     
+
         **Description**
         ----------------
         This function implements the forward backward algorithm for inference no a Markov
         Hidden Mode. The input is an array containing the observations at each time
-        instant and the model is an object of the bayes_net.Model class describing the 
+        instant and the model is an object of the bayes_net.Model class describing the
         likelihood function (emission probabilities) and the transition matrix. The output
         are the smoothed probabilities of each state for each time instant.
-         
+
         **Args**:
         ----------------
         - observations: array-like (currently only tested for 1-D arrays)
         - model: object of the ra.bayes_net.Model class
-        
+
        **Returns**:
         ----------------
-       - List containing the probabilities of each state being observed in each time 
-       instant given all possible observations. 
+       - List containing the probabilities of each state being observed in each time
+       instant given all possible observations.
        The probability vector should be normalized to one for each time instant and is
        array-like (possibly sparse).
 
@@ -315,24 +315,24 @@ def forward_backward_algorithm(observations, model):
     del alpha[0]
     del beta[-1]
     return output_prob, alpha, beta
-    
-    
+
+
 def viterbi(observations, model):
     """ Viterbi Algorithm for inference on a HMM model.
-     
+
         **Description**
         ----------------
         This function implements the viterbi algorithm for inference on a Markov
         Hidden Mode. The input is an array containing the observations at each time
-        instant and the model is an object of the bayes_net.Model class describing the 
+        instant and the model is an object of the bayes_net.Model class describing the
         likelihood function (emission probabilities) and the transition matrix. The output
         is the most probable state sequence and its probability.
-         
+
         **Args**:
         ----------------
         - observations: array-like (currently only tested for 1-D arrays)
         - model: object of the ra.bayes_net.Model class
-        
+
        **Returns**:
         ----------------
        - List containing the most probable state sequence.
@@ -341,7 +341,7 @@ def viterbi(observations, model):
         ----------------
     """
     if model.n_states > model.sparse_thr:
-        return sparse_viterbi(observations, model)    
+        return sparse_viterbi(observations, model)
     v = []
     v.append(sp.log(model.likelihood(observations[0], 0, model.prior) * model.prior)[:,0])
     path = []
@@ -366,20 +366,20 @@ def viterbi(observations, model):
 
 def sparse_viterbi(observations, model):
     """ Viterbi Algorithm for inference on a Sparse HMM model.
-     
+
         **Description**
         ----------------
         This function implements the viterbi algorithm for inference on a Markov
         Hidden Mode. The input is an array containing the observations at each time
-        instant and the model is an object of the bayes_net.Model class describing the 
+        instant and the model is an object of the bayes_net.Model class describing the
         likelihood function (emission probabilities) and the transition matrix. The output
         is the most probable state sequence and its probability.
-         
+
         **Args**:
         ----------------
         - observations: array-like (currently only tested for 1-D arrays)
         - model: object of the ra.bayes_net.Model class
-        
+
        **Returns**:
         ----------------
        - List containing the most probable state sequence.
@@ -416,12 +416,10 @@ def sparse_viterbi(observations, model):
                 curr_path[s] = path[ind_aux] + [s]
         finish = time.clock()
         path = curr_path
-        print n
+        print(n)
         v = curr_v.tocsr()
 #         raw_input()
     # Backtracking:
     aux_v = v.tocoo()
     p_final, ind, gar = max([(val, i , j) for val, i, j in itertools.izip(aux_v.data, aux_v.row, aux_v.col)])
     return path[ind], p_final
-
-    

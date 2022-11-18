@@ -7,21 +7,21 @@ import math
 from scipy.interpolate import interp1d
 from numeric import *
 
-def validate_sim_fun_args(input_signal, window_size=None, hop=None, max_lag=None, 
+def validate_sim_fun_args(input_signal, window_size=None, hop=None, max_lag=None,
                           min_lag=None):
-    """ 
-        Validates the arguments window_size, hop, max_lag, min_lag of all similarity 
+    """
+        Validates the arguments window_size, hop, max_lag, min_lag of all similarity
         functions. Returns the window size and hop in samples and adjusted min and max lags.
     """
-    if window_size == None: 
+    if window_size == None:
         window_size = input_signal.data.size/float(input_signal.fs)
-    if hop == None: 
+    if hop == None:
         hop = input_signal.data.size/float(input_signal.fs)
     # Default maximum lag corresponds to 40 bpm
-    if max_lag == None: 
+    if max_lag == None:
         max_lag = 60.0/40.0
     # Default minimum lag corresponds to 250 bpm
-    if min_lag == None: 
+    if min_lag == None:
         min_lag = 60.0/250.0
     if min_lag>max_lag:
         raise ValueError("Minimum lag must be greater than maximum lag.")
@@ -30,15 +30,15 @@ def validate_sim_fun_args(input_signal, window_size=None, hop=None, max_lag=None
     window_size_int = int(round(float(window_size)*input_signal.fs))
     hop_int = max(int(round(float(hop)*input_signal.fs)), 1)
     return window_size_int, hop_int, max_lag, min_lag
-        
 
-def corr(input_signal, window_size=None, hop=None, max_lag=None, min_lag=None, 
+
+def corr(input_signal, window_size=None, hop=None, max_lag=None, min_lag=None,
          normalize='one'):
     """
         Similarity computation through auto-correlation.
     """
 
-    window_size, hop_int, max_lag, min_lag = validate_sim_fun_args(input_signal, 
+    window_size, hop_int, max_lag, min_lag = validate_sim_fun_args(input_signal,
                                              window_size, hop, max_lag, min_lag)
     # Segmenting
     part_sig = segmentSignal(input_signal.data, window_size, hop_int)
@@ -50,7 +50,7 @@ def corr(input_signal, window_size=None, hop=None, max_lag=None, min_lag=None,
     lag = lag[ind_min]
     for x in sp.transpose(part_sig):
         corr_result = sp.correlate(x, x, mode='full')
-        corr_result = corr_result[corr_result.size/2:]
+        corr_result = corr_result[corr_result.size//2:]
         # Normalizing so that correlation at lag=0 is 1:
         corr_result /= corr_result[0]
         corr_result = corr_result[ind_max][ind_min]
@@ -65,15 +65,15 @@ def corr(input_signal, window_size=None, hop=None, max_lag=None, min_lag=None,
     result = result.T
     time = (sp.arange(part_sig.shape[-1])*hop_int*input_signal.period) + window_size*input_signal.period
     return data.Similarity(result, lag, time)
-    
 
-def dft(input_signal, window_size=None, hop=None, max_lag=None, min_lag=None, 
+
+def dft(input_signal, window_size=None, hop=None, max_lag=None, min_lag=None,
          normalize='one', zp=4):
     """
         Similarity computation through auto-correlation.
     """
 
-    window_size, hop_int, max_lag, min_lag = validate_sim_fun_args(input_signal, 
+    window_size, hop_int, max_lag, min_lag = validate_sim_fun_args(input_signal,
                                          window_size, hop, max_lag, min_lag)
     # Segmenting
     part_sig = segmentSignal(input_signal.data, window_size, hop_int)
@@ -111,20 +111,20 @@ def sumCorr(feature, window_size=None, hop=None, max_lag=None, min_lag=None,
     """
     for i in range(feature.data.shape[0]):
         if i==0:
-            sim  = sim_fun(feature.getSignal(i), window_size, hop, max_lag, min_lag, 
+            sim  = sim_fun(feature.getSignal(i), window_size, hop, max_lag, min_lag,
                         normalization, **fun_kw)
         else:
-            sim += sim_fun(feature.getSignal(i), window_size, hop, max_lag, min_lag, 
+            sim += sim_fun(feature.getSignal(i), window_size, hop, max_lag, min_lag,
                         normalization, **fun_kw)
     sim.data /= feature.data.shape[0]
     return sim
-    
-    
-def fm_acf(input_signal, window_size=None, hop=None, max_lag=None, min_lag=None, 
+
+
+def fm_acf(input_signal, window_size=None, hop=None, max_lag=None, min_lag=None,
          normalize=None, zp=4, interp_fun='linear'):
     """"Frequency-mapped auto-correlation function."""
 
-    window_size, hop_int, max_lag, min_lag = validate_sim_fun_args(input_signal, 
+    window_size, hop_int, max_lag, min_lag = validate_sim_fun_args(input_signal,
                                              window_size, hop, max_lag, min_lag)
     # Making the input signal zero-mean and with unit variance.
     aux_data = copy.copy(input_signal.data)
@@ -174,8 +174,8 @@ def fm_acf(input_signal, window_size=None, hop=None, max_lag=None, min_lag=None,
     result = result.T
     time = (sp.arange(part_sig.shape[-1])*hop_int*input_signal.period)+window_size*input_signal.period
     return data.Similarity(result, chosen_lag, time)
-    
-def lm_dtft(input_signal, window_size=None, hop=None, max_lag=None, min_lag=None, 
+
+def lm_dtft(input_signal, window_size=None, hop=None, max_lag=None, min_lag=None,
          normalize=True):
     """"
         Lag-Mapped DTFT.
@@ -183,9 +183,9 @@ def lm_dtft(input_signal, window_size=None, hop=None, max_lag=None, min_lag=None
         - DTFT instead of DFT: allows for any delay.
     """
     # Calculating autocorrelation
-    sim = corr(input_signal, window_size=window_size, hop=hop, max_lag=max_lag, 
+    sim = corr(input_signal, window_size=window_size, hop=hop, max_lag=max_lag,
                min_lag=min_lag, normalize=None)
-    window_size, hop_int, max_lag, min_lag = validate_sim_fun_args(input_signal, 
+    window_size, hop_int, max_lag, min_lag = validate_sim_fun_args(input_signal,
                                              window_size, hop, max_lag, min_lag)
     # Segmenting
     part_sig = segmentSignal(input_signal.data, window_size, hop_int)
@@ -214,16 +214,16 @@ def lm_dtft(input_signal, window_size=None, hop=None, max_lag=None, min_lag=None
         except NameError:
             result = prod
     return data.Similarity(result.T, sim.lag, sim.time)
-    
-    
+
+
 def multiFeatCorr(feature, window_size=None, hop=None, max_lag=None, min_lag=None,
                   normalization = None, sim_fun=corr, **fun_kw):
     """
-        Estimates the periodicity function through the correlation for several features, 
+        Estimates the periodicity function through the correlation for several features,
         and frames.
     """
     for i in range(feature.num_features):
-        aux_sim  = sim_fun(feature.getSignal(i), window_size, hop, max_lag, min_lag, 
+        aux_sim  = sim_fun(feature.getSignal(i), window_size, hop, max_lag, min_lag,
                         normalization, **fun_kw)
         if i == 0:
             # Initialization of the similarity data
@@ -236,5 +236,3 @@ def multiFeatCorr(feature, window_size=None, hop=None, max_lag=None, min_lag=Non
                 aux_sim.data = sp.atleast_2d(aux_sim.data).T
             sim.aggregate_feat(aux_sim)
     return sim
-    
-    

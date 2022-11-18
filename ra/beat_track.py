@@ -18,7 +18,7 @@ def create_tatum_model(max_tatum, min_period, max_period, sigma_c):
             return window_taps[x + h_win_len]
         else:
             return 0.0
-            
+
     def tatum_trans(names, si, sj):
         # si: current state, sj: future state
         if si[0] and sj[2] == (si[1] + 1):
@@ -52,13 +52,13 @@ def create_tatum_model(max_tatum, min_period, max_period, sigma_c):
 
     tatum_indicator = bn.HiddenVariable(state_list=[False, True], name='ind_t')
     tatum_counter = bn.HiddenVariable(state_list=range(max_tatum + 1), name='counter_t')
-    tatum_period = bn.HiddenVariable(state_list=range(min_period, max_period + 1), 
+    tatum_period = bn.HiddenVariable(state_list=range(min_period, max_period + 1),
                                      name='period_t')
-    model = bn.HMM_Model(hidden_va_list = [tatum_indicator, tatum_counter, tatum_period], 
+    model = bn.HMM_Model(hidden_va_list = [tatum_indicator, tatum_counter, tatum_period],
                          transition=tatum_trans)
     return model
-        
-    
+
+
 
 def tatum_observation_model(feature, cand_beat, p=8, log_scale=40, log_thr=0.2):
     # Normalizing feature:
@@ -73,7 +73,7 @@ def tatum_observation_model(feature, cand_beat, p=8, log_scale=40, log_thr=0.2):
         else:
             return 1.0 - p_obs[n]
     return tatum_likelihood
-            
+
 
 def get_prior_tatum(beat_period, max_tatum, min_period, max_period):
     tatum_conv = sp.array([1./2, 1./3, 1./4, 1., 1./6, 3./2, 2./3, 1./9])
@@ -114,7 +114,7 @@ def create_beat_model(max_tatum, min_period, max_period, sigma_c):
             return window_taps[x + h_win_len]
         else:
             return 0.0
-            
+
     def beat_trans(names, si, sj):
         # si: current state, sj: future state
         # Starting with tatum states:
@@ -171,12 +171,12 @@ def create_beat_model(max_tatum, min_period, max_period, sigma_c):
 
     tatum_indicator = bn.HiddenVariable(state_list=[False, True], name='ind_t')
     tatum_counter = bn.HiddenVariable(state_list=range(max_tatum + 1), name='counter_t')
-    tatum_period = bn.HiddenVariable(state_list=range(min_period, max_period + 1), 
+    tatum_period = bn.HiddenVariable(state_list=range(min_period, max_period + 1),
                                      name='period_t')
     beat_indicator = bn.HiddenVariable(state_list=[False, True], name='ind_b')
     beat_counter = bn.HiddenVariable(state_list=[0, 1, 2], name='counter_b')
     beat_period = bn.HiddenVariable(state_list=[2, 3], name='period_t')
-    model = bn.HMM_Model(hidden_va_list=[tatum_indicator, tatum_counter, tatum_period, 
+    model = bn.HMM_Model(hidden_va_list=[tatum_indicator, tatum_counter, tatum_period,
                         beat_indicator, beat_counter, beat_period], transition=beat_trans)
     return model
 
@@ -184,14 +184,14 @@ def create_beat_model(max_tatum, min_period, max_period, sigma_c):
 def def_norm_feat_gen(data, max_period, p):
     if not(max_period  % 2):
         max_period += 1
-    ext_len = (max_period - 1) / 2
+    ext_len = (max_period - 1) // 2
     ext_data = data[1:ext_len + 1][::-1]
     ext_data = sp.append(ext_data, data)
     ext_data = sp.append(ext_data, data[-2:-ext_len - 2:-1])
 
     def aux(i, win_size):
         fac = (win_size % 2)
-        h_len = (win_size / 2)
+        h_len = (win_size // 2)
         aux = norm_p(ext_data[i - h_len + ext_len : i + ext_len + h_len + fac], ord=p)
         return ext_data[i + ext_len] / max(aux, 1e-20)
 
@@ -204,17 +204,17 @@ def normalize_features(data, win_len, p):
     for i in range(data.size):
         out[i] = foo(i, win_len)
     return out
-    
+
 
 def create_simple_pattern_model(pattern_len, period, sigma_c):
     """ Creates a simple HMM pattern model. Parameters are:
         pattern_len: number of tatums inside the pattern.
         period: estimated period in frames.
         sigma_c: half the size of window for detecting tatums."""
-    # Creating window function:    
+    # Creating window function:
     window_taps = sp.hanning(2 * sigma_c + 3) # 2 boundaries value of hanning are always zero.
     window_taps /= sp.sum(window_taps)
-    h_win_len = (len(window_taps) - 1) / 2
+    h_win_len = (len(window_taps) - 1) // 2
     def ind_foo(x):
         if abs(x) >= period - sigma_c - 1:
             return window_taps[x - period + 1 + h_win_len]
@@ -240,16 +240,16 @@ def create_simple_pattern_model(pattern_len, period, sigma_c):
         else:
             p_t = 0.0
         return p_c * p_t
-    
+
     pattern_index = bn.HiddenVariable(state_list=range(pattern_len), name='pattern_index')
     tatum_counter = bn.HiddenVariable(state_list=range(period + sigma_c), name='tatum_c')
-    model = bn.HMM_Model(hidden_va_list=[tatum_counter, pattern_index], 
+    model = bn.HMM_Model(hidden_va_list=[tatum_counter, pattern_index],
                          transition=pattern_trans)
     return model
 
 
 def gen_pattern(tatum_pattern, period):
-    """ Generates a rhythmic pattern given the accentuation pattern along the tatum and its 
+    """ Generates a rhythmic pattern given the accentuation pattern along the tatum and its
         period in samples. """
     p_len = len(tatum_pattern) * period
     pattern = sp.zeros((p_len,))
@@ -279,25 +279,19 @@ def get_pattern_prior(model):
 
 
 def gen_obs_model_simple_pattern(pattern, sigma_o):
-    """ This function creates an observation model for rhythmic patterns. An accentuation 
-         pattern defined in terms of tatum. A tatum period in samples should also be 
+    """ This function creates an observation model for rhythmic patterns. An accentuation
+         pattern defined in terms of tatum. A tatum period in samples should also be
          provided."""
 
     gauss = st.norm(scale=sigma_o) # zero-mean gaussian, with std = sigma_c
 
     def pat_likelihood(observation, n, state):
-        """ Simple observation. Assumes that the accentuation should be close to the 
+        """ Simple observation. Assumes that the accentuation should be close to the
         pattern."""
         if state[0] == 0: # Tatum should be observed.
-            curr_pat = pattern[state[1]] # Expected occurance 
+            curr_pat = pattern[state[1]] # Expected occurance
             p = gauss.pdf(curr_pat - observation)
         else: # Tatum should not be observed.
             p = gauss.pdf(0.0 - observation)
         return p
     return pat_likelihood
-        
-        
-        
-    
-
-
